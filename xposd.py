@@ -1,8 +1,10 @@
+#!/usr/bin/python3
 import asyncio
 import argparse
 import multiprocessing
 
 from modules.PortScanner import PortScanner as PortScanner
+from modules.NMapper import NMap as NMap
 
 parser = argparse.ArgumentParser(description='Process arguments for script')
 parser.add_argument('--target', '-t', metavar='', help='(required) Target IP or Hostname (wihout http://)', required=True)
@@ -25,7 +27,14 @@ def main(args):
         port_scanner.set_latency(args.latency)
 
     open_ports = port_scanner.scan_ports()
-    print(open_ports)
+    print(f'[-] Port statuses:')
+    for port in open_ports:
+        print(f'| [*] {port} - OPEN')
+    
+    nmap = NMap()
+    nmap.set_target(args.target)
+    nmap.set_ports(open_ports)
+    nmap.run_scan()
 
 if __name__ == '__main__':
     main(args)
