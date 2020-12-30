@@ -13,8 +13,11 @@ class NMap:
         self.ports = None
         self.target = None
         self.scan_output = None
+        self.http_services = None
+
         self.version_scan = True
         self.syn_scan = True
+
         self.scripts='default,vuln'
 
         cmd = "which nmap"
@@ -41,12 +44,13 @@ class NMap:
 
     def set_nse(self, scripts):
         self.scripts = scripts
+
+    def get_http_services(self):
+        return self.http_services
     
     def parse_output(self):
         tree = ET.parse(self.scan_output)
         root = tree.getroot()
-
-        http_services = []
 
         # cleanup the junk
         os.remove(self.scan_output)
@@ -66,7 +70,10 @@ class NMap:
                     port_service = child.attrib["name"]
                     print(f'|  [-] Service: {port_service}')
                     if port_service == "http":
-                        http_services.append(port)
+                        if self.http_services is None:
+                            self.http_services = []
+                        else:
+                            self.http_services.append(port)
                     if 'product' in child.attrib:
                         print(f'|  [-] Software: {child.attrib["product"]}')
                     if 'version' in child.attrib:
