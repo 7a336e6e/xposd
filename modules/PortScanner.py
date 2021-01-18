@@ -4,8 +4,10 @@ import time
 import threading
 import concurrent.futures
 import socket
+import utilities.logger as logger
 
 class Port:
+
     def __init__(self):
         self.number = 0
         self.status = 'closed'
@@ -19,20 +21,22 @@ class PortScanner:
         self.latency = 0.3
         self.workers = 1000
 
+        self.log = logger.Logger()
+
     def set_target(self, ip):
         try:
-            print(f'[-] Setting target to {ip}')
+            self.log.info(f'Setting target to {ip}')
             self.target = socket.gethostbyname(ip)
         except:
-            print('[!] Invalid target IP format')
+            self.log.error('Invalid target IP format')
             return
 
     def set_latency(self, val):
-        print(f'[-] Setting latency to {val}')
+        self.log.info(f'Setting latency to {val}')
         self.latency = val
 
     def set_workers(self, val):
-        print(f'[-] Setting max workers to {val}')
+        self.log.info(f'Setting max workers to {val}')
         self.workers = val
 
     def run_scan(self, port):
@@ -52,17 +56,17 @@ class PortScanner:
 
     def scan_ports(self):
         if self.target is None:
-            print(f'We require more minerals... pardon, a target.')
+            self.log.error(f'We require more minerals... pardon, a target.')
             return
         
         start = time.perf_counter()
-        print('[-] Started port scanning')
+        self.log.info('Started port scanning')
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as executor:
             _ = executor.map(self.run_scan, self.port_range)
 
         finish = time.perf_counter()
 
-        print(f'[-] Finised scanning {len(self.port_range)} port(s) in {round(finish-start, 2)} second(s)')
+        self.log.info(f'Finised scanning {len(self.port_range)} port(s) in {round(finish-start, 2)} second(s)')
 
         return self.open_ports

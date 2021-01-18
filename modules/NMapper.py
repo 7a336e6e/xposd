@@ -7,13 +7,21 @@ import datetime
 import time
 
 import xml.etree.ElementTree as ET
+import concurrent.futures
+
+import utilities.logger as logger
 
 class NMap:
+    log = logger.Logger()
+
     def __init__(self):
         self.ports = None
         self.target = None
         self.scan_output = None
         self.http_services = None
+
+        self.latency = 0.3
+        self.workers = 1000
 
         self.version_scan = True
         self.syn_scan = True
@@ -32,9 +40,15 @@ class NMap:
         sub_proc = subprocess.Popen(args, stdout=subprocess.PIPE)
         output, errs = sub_proc.communicate(timeout=10)
         nmap_version = re.search('\s*([\d.]+)', output.decode('utf8').strip()).group(1)
-        print(f'[-] Using nmap (Version: {nmap_version})')
-        self.epoch = datetime.datetime.now().timestamp()
-        print(f'[-] Setting epoch to: {self.epoch}')
+        self.log.info(f'Using nmap (Version: {nmap_version})')
+
+    def set_latency(self, val):
+        self.log.info(f'Setting latency to {val}')
+        self.latency = val
+
+    def set_workers(self, val):
+        self.log.info(f'Setting max workers to {val}')
+        self.workers = val
 
     def set_ports(self, ports):
         self.ports = ports
@@ -53,47 +67,59 @@ class NMap:
         root = tree.getroot()
 
         # cleanup the junk
-        os.remove(self.scan_output)
+        # os.remove(self.scan_output)
 
         # get all hostnames
         hostnames = tree.findall('.//hostnames/hostname')
         for host in hostnames:
-            print(f'[-] found hostname: {host.attrib["name"]}')
+            self.log.info(f'found hostname: {host.attrib["name"]}')
 
         # get all ports
         ports = tree.findall('.//ports/port')
-        print(f'[*] Ports information:')
+        self.log.info(f'Ports information:')
         for port in ports:
-            print(f'|_[*] Port: {port.attrib["portid"]}/{port.attrib["protocol"]}')
+            self.log.info(f'Port: {port.attrib["portid"]}/{port.attrib["protocol"]}')
             for child in port:
                 if child.tag == "service":
                     port_service = child.attrib["name"]
-                    print(f'|  [-] Service: {port_service}')
+                    self.log.info(f'Service: {port_service}')
                     if port_service == "http":
                         if self.http_services is None:
                             self.http_services = []
                         else:
                             self.http_services.append(port)
                     if 'product' in child.attrib:
-                        print(f'|  [-] Software: {child.attrib["product"]}')
+                        self.log.info(f'Software: {child.attrib["product"]}')
                     if 'version' in child.attrib:
-                        print(f'|  [-] Version: {child.attrib["version"]}')
+                        self.log.info(f'Version: {child.attrib["version"]}')
 
-    def run_scan(self):
-        if self.ports is None:
-            print(f'[!] There are no ports to scan. Try increasing the latency using --latency param.')
+    def network_map(self, port):
+        cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{port} -T5 {self.target}'
 
-        p = ''
-        for port in self.ports:
-            p += f'{port},'
-        p = p[:-1]
-
-        self.scan_output = f'.{self.epoch}.xml'
-        cmd = f'{self.nmap} -sV -Pn -p{p} -T5 -oX {self.scan_output} {self.target}'
-        print(f'[-] Running nmap command: {cmd}')
         args = shlex.split(cmd)
         sub_proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         output, errs = sub_proc.communicate()
         poll = sub_proc.poll()
 
-        self.parse_output()
+    def run_scan(self):
+        if self.ports is None:
+            self.log.error(f'There are no ports to scan. Try increasing the latency using --latency param.')
+
+        # p = ''
+        # for port in self.ports:
+        #     p += f'{port},'
+        # p = p[:-1]
+
+        self.log.info(f'Running nmap scan on ports {ports}')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as executor:
+            _ = executor.map(self.network_map, self.ports)
+
+        # self.scan_output = f'output/{self.target}.xml'
+        # cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{p} -T5 -oA {self.target} {self.target}'
+        # self.log.info(f'Running nmap command: {cmd}')
+        # args = shlex.split(cmd)
+        # sub_proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # output, errs = sub_proc.communicate()
+        # poll = sub_proc.poll()
+
+        # self.parse_output()

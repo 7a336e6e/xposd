@@ -7,6 +7,8 @@ from modules.PortScanner import PortScanner as PortScanner
 from modules.NMapper import NMap as NMap
 from modules.Fuzzer import Directory as dfuzz
 
+import utilities.logger as ulogger
+
 parser = argparse.ArgumentParser(description='Process arguments for script')
 parser.add_argument('--target', '-t', metavar='', help='(required) Target IP or Hostname (wihout http://)', required=True)
 parser.add_argument('--latency', '-l', metavar='', type=float, help='(optional) Time to wait for Socket connection. Default value 0.5 seconds', required=False)
@@ -20,6 +22,10 @@ args =parser.parse_args()
 def main(args):
     print(args)
 
+    logger = ulogger.Logger()
+    logger.set_up(args.target)
+    log = logger.get_logger()
+
     port_scanner = PortScanner()
     port_scanner.set_target(args.target)
 
@@ -29,10 +35,11 @@ def main(args):
     if args.latency is not None:
         port_scanner.set_latency(args.latency)
 
+
     open_ports = port_scanner.scan_ports()
-    print(f'[-] Port statuses:')
-    for port in open_ports:
-        print(f'| [*] {port} - OPEN')
+    log.info(f'Open ports: {open_ports}')
+    # for port in open_ports:
+    #     log.info(f'{port} - OPEN')
     
     nmap = NMap()
     nmap.set_target(args.target)
@@ -40,10 +47,10 @@ def main(args):
     nmap.run_scan()
 
     http_services = nmap.get_http_services()
-    dfuz = dfuzz()
-    dfuz.set_ports(http_services)
-    dfuz.set_target(args.target)
-    dfuz.run_dfuz()
+    # dfuz = dfuzz()
+    # dfuz.set_ports(http_services)
+    # dfuz.set_target(args.target)
+    # dfuz.run_dfuz()
 
 if __name__ == '__main__':
     main(args)
