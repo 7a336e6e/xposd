@@ -94,32 +94,19 @@ class NMap:
                         self.log.info(f'Version: {child.attrib["version"]}')
 
     def network_map(self, port):
-        cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{port} -T5 {self.target}'
+        cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{port} -T5 {self.target} -oA port{port}-scan'
 
         args = shlex.split(cmd)
         sub_proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         output, errs = sub_proc.communicate()
         poll = sub_proc.poll()
+
+        #ToDo: add parse / print of output scan
 
     def run_scan(self):
         if self.ports is None:
             self.log.error(f'There are no ports to scan. Try increasing the latency using --latency param.')
 
-        # p = ''
-        # for port in self.ports:
-        #     p += f'{port},'
-        # p = p[:-1]
-
         self.log.info(f'Running nmap scan on ports {self.ports}')
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as executor:
             _ = executor.map(self.network_map, self.ports)
-
-        self.scan_output = f'output/{self.target}.xml'
-        cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{p} -T5 -oA {self.target} {self.target}'
-        self.log.info(f'Running nmap command: {cmd}')
-        args = shlex.split(cmd)
-        sub_proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        output, errs = sub_proc.communicate()
-        poll = sub_proc.poll()
-
-        self.parse_output()
