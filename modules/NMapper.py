@@ -110,16 +110,16 @@ class NMap:
         #     p += f'{port},'
         # p = p[:-1]
 
-        self.log.info(f'Running nmap scan on ports {ports}')
+        self.log.info(f'Running nmap scan on ports {self.ports}')
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as executor:
             _ = executor.map(self.network_map, self.ports)
 
-        # self.scan_output = f'output/{self.target}.xml'
-        # cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{p} -T5 -oA {self.target} {self.target}'
-        # self.log.info(f'Running nmap command: {cmd}')
-        # args = shlex.split(cmd)
-        # sub_proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        # output, errs = sub_proc.communicate()
-        # poll = sub_proc.poll()
+        self.scan_output = f'output/{self.target}.xml'
+        cmd = f'{self.nmap} -sV -sC -Pn --script=default,vuln -p{p} -T5 -oA {self.target} {self.target}'
+        self.log.info(f'Running nmap command: {cmd}')
+        args = shlex.split(cmd)
+        sub_proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        output, errs = sub_proc.communicate()
+        poll = sub_proc.poll()
 
-        # self.parse_output()
+        self.parse_output()
