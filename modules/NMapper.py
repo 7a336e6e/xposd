@@ -101,7 +101,8 @@ class NMap:
         output, errs = sub_proc.communicate()
         poll = sub_proc.poll()
 
-        #ToDo: add parse / print of output scan
+        output = open(f'port{port}-scan.nmap', 'r').read()
+        self.log.info(f'Scan results for port: {port} - \n {output}')
 
     def run_scan(self):
         if self.ports is None:
