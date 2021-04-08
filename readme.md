@@ -1,6 +1,6 @@
 # XPOSD
 
-Pronounced /ikˈsplōdəd/ (exposed) is a tool I'm working on to automate most of the RECON part of Hacking.
+Pronounced (exposed) is a tool I'm working on to automate most of the RECON part of Hacking.
 
 ## Usage
 ```
